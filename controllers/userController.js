@@ -61,7 +61,7 @@ export default class UserController {
                 }
                 else {
                     let token = generateToken(user_data.email);
-                    console.log(user);
+                   
                     res.status(200).send({ msg: "User LoggedIn", user: { name: user.name, email: user_data.email }, token });
                 }
             }
@@ -71,7 +71,7 @@ export default class UserController {
 
         }
         catch (err) {
-            console.log(err);
+           
             res.status(500).send({ msg: "Server Error " + err });
         }
 

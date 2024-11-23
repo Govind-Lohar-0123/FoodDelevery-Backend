@@ -53,5 +53,5 @@ app.post("/send-email", sendEmail);
 //listening server
 
 app.listen(PORT, () => {
-    console.log(`Server is Running on Port ${PORT}`);
+
 })

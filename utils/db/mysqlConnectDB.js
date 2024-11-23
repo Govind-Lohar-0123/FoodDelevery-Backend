@@ -8,11 +8,11 @@ function mysqlConnectDB() {
             password: 'root',
             database: 'FoodDelevery'
         })
-        console.log("Connection with mysql Successfull");
+       
         return db;
     }
     catch (err) {
-        console.log("Connection with mysql is failed...");
+        
         
     }
 
