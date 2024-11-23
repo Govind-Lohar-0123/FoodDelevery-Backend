@@ -1,17 +1,18 @@
-import foodModel from "../config/models/foodSchema.js";
-import foodCatModel from "../config/models/foodCategory.js";
-class FoodController{
-    static getFood=async(req,res)=>{
-        try{
-            const foodData=await foodModel.find({});
-           const foodCat=await foodCatModel.find({});
-       
-            res.status(200).send({foodData,foodCat,status:true});
+import foodModel from "../utils/models/foodSchema.js";
+import foodCatModel from "../utils/models/foodCategory.js";
+class FoodController {
+    static getFoods = async (req, res) => {
+        try {
+            
+            const foodData = await foodModel.find({});
+            const foodCategory = await foodCatModel.find({});
+
+            res.status(200).send({ foodData, foodCategory, status: true });
         }
-        catch(err){
-            res.status(200).send({SearverError :err+"",status:false});
+        catch (err) {
+            res.status(200).send({ msg: "Server Error", status: false });
         }
-       
+
     }
 }
 export default FoodController;

@@ -1,74 +1,165 @@
-import userModel from "../config/models/userSchema.js";
-import bcrypt from "bcrypt";
-import { jwtAuthMiddleware, generateToken } from "../config/middleware/jwtAuthMiddleware.js";
-import jwt from "jsonwebtoken";
 
-class UserController {
+//400->for missing and madantory fiedl
 
-    static Register = async (req, res) => {
-        let isEmpty = false;
-        for (let data in req.body) {
-            if (req.body[data] == "") {
-                isEmpty = true;
+import userModel from "../utils/models/userSchema.js";
+
+import { generateHashPass, verifyPassword } from "../utils/actions/passHashAction.js";
+import { generateToken } from "../utils/actions/tokenAction.js";
+export default class UserController {
+    static userRegister = async (req, res) => {
+        const user_data = req.body.user_data;
+
+        for (let key in user_data) {
+            if (user_data[key] == "" || user_data[key] == undefined) {
+                res.status(201).send({ msg: "Please Fill All Field" });
+                return;
             }
         }
-        if (isEmpty) { res.status(200).send({ msg: "Please Fill All Filed...!", status: false }); }
-        else {
-            const { email, password } = req.body;
-            try {
-                let result = await userModel.findOne({ email: email });
-                if (result == null) {
-                    
-                    const newUser = userModel(req.body);
-                    let result = await newUser.save();
-                    let SECRET_KEY = process.env.JWT_SECRET_KEY;
-                    let payload = { email: result.email };
-                    let token = generateToken(SECRET_KEY, payload);
-                    res.status(200).send({ msg: "User Registered...!", status: true, token });
+        try {
+            let user = await userModel.findOne({ email: user_data.email });
 
-                }
-                else res.status(203).send({ msg: "Email is already exist...!", status: false });
+            if (user == undefined || user == null) {
+                user_data.password = await generateHashPass(user_data.password);
+                await userModel(user_data).save();
+
+                let token = generateToken(user_data.email);
+                res.status(200).send({ msg: "User Registered", user: { name: user_data.name, email: user_data.email }, token });
             }
-            catch (err) {
-                res.status(203).send({ msg: "Failed " + err, status: false });
+            else {
+                res.status(201).send({ msg: "User Already Registered" });
             }
+
         }
+        catch (err) {
+            res.status(500).send({ msg: "Server Error " + err });
+        }
+
     }
-    static Login = async (req, res) => {
 
-        if (req.body.email == "" || req.body.password == "") res.status(203).send({ msg: "Please Fill All Filed...!", status: false });
-        else {
-            try {
+    static userLogin = async (req, res) => {
+        const user_data = req.body.user_data;
 
-                let user = await userModel.findOne({ email: req.body.email });
+        for (let key in user_data) {
+            if (user_data[key] == "" || user_data[key] == undefined) {
+                res.status(201).send({ msg: "Please Fill All Field" });
+                return;
+            }
+        }
+        // Configure Passport.js
 
-                if (user != null) {
-                    let isMatchPass = await user.comparePassword(req.body.password);
 
-                    if (isMatchPass) {
+        try {
+            let user = await userModel.findOne({ email: user_data.email });
 
-                        let SECRET_KEY = process.env.JWT_SECRET_KEY;
-                        let payload = { email: user.email };
-                        let token = generateToken(SECRET_KEY, payload);
-                        res.status(200).send({ msg: "User is LoggedIn...!", status: true, token });
-                    }
-                    else { res.status(203).send({ msg: "Invalid Email or Password...!", status: false }); }
+            if (user != undefined && user != null) {
+                let hashPass = user.password;
+
+                let isMatchPass = await verifyPassword(user_data.password, hashPass);
+
+                if (isMatchPass == false) {
+                    res.status(201).send({ msg: "Invalid Email or Password" });
                 }
                 else {
-                    res.status(203).send({ msg: "Email is not exixts...!", status: false });
+                    let token = generateToken(user_data.email);
+                    console.log(user);
+                    res.status(200).send({ msg: "User LoggedIn", user: { name: user.name, email: user_data.email }, token });
                 }
             }
-            catch (err) {
-                res.status(203).send({ msg: "" + err, status: false });
+
+            else res.status(201).send({ msg: "Invalid Email or Password" });
+
+
+        }
+        catch (err) {
+            console.log(err);
+            res.status(500).send({ msg: "Server Error " + err });
+        }
+
+    }
+    static changePassword = async (req, res) => {
+        let user_data = req.body.user_data;
+        let { email, newPassword, oldPassword } = req.body.user_data;
+
+        for (let key in user_data) {
+            if (user_data[key] == "" || user_data[key] == undefined) {
+                res.status(201).send({ msg: "Please Fill All Field" });
+                return;
             }
         }
-    }
-    static getUser=(req,res)=>{
-       
-        res.status(200).send(req.user);
-    }
 
 
+        try {
+            let user = await userModel.findOne({ email: email });
+            let hashPass = user.password;
+            let isMatchPass = await verifyPassword(oldPassword, hashPass);
+
+            if (isMatchPass == false) {
+                res.status(201).send({ msg: "Old Password is Wrong..." });
+            }
+            else {
+                let newHashPass = await generateHashPass(newPassword);
+
+                await userModel.updateOne({ email: email }, { password: newHashPass });
+
+                res.status(200).send({ msg: "User Password Changed..." });
+            }
+
+
+        }
+        catch (err) {
+            res.status(500).send({ msg: "Server Error " + err });
+        }
+
+    }
+    static forgetPassword = async (req, res) => {
+        let user_data = req.body.user_data;
+        let { email, newPassword } = req.body.user_data;
+
+        for (let key in req.body.user_data) {
+            if (user_data[key] == "" || user_data[key] == undefined) {
+                res.status(201).send({ msg: "Please Fill All Field" });
+                return;
+            }
+        }
+
+        try {
+            let user = await userModel.findOne({ email: email });
+            if (user == undefined || user == null) {
+                res.status(201).send({ msg: "Email is Invalid..." });
+                return;
+            }
+
+            let newHashPass = await generateHashPass(newPassword);
+
+            await userModel.updateOne({ email: email }, { password: newHashPass });
+
+            res.status(200).send({ msg: "User Password Changed..." });
+
+        }
+        catch (err) {
+            res.status(500).send({ msg: "Server Error " + err });
+        }
+
+    }
+    static deleteAccount = async (req, res) => {
+
+        let email = req.body.email;
+
+
+        if (email == "") {
+            res.status(201).send({ msg: "Please Fill All Field" });
+            return;
+        }
+        try {
+
+            await userModel.deleteOne({ email: email });
+            res.status(200).send({ msg: "User Account Deleted" });
+
+        }
+        catch (err) {
+            res.status(500).send({ msg: "Server Error " + err });
+        }
+
+    }
 
 }
-export default UserController;

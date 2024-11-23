@@ -1,15 +1,14 @@
 import express from "express";
-const router=express.Router();
-import localAuthMiddleware from "../config/middleware/authMiddleware.js";
 import UserController from "../controllers/userController.js";
-import { jwtAuthMiddleware } from "../config/middleware/jwtAuthMiddleware.js";
+import userAuthorization from "../utils/middlewares/authMiddleware.js";
+const router = express.Router();
 
-router.post("/signup",UserController.Register);
-router.get("/getuser",jwtAuthMiddleware,UserController.getUser);
-router.post("/login",UserController.Login);
 
-//  FOOD  Api//
+router.post("/register", UserController.userRegister);
+router.post("/login", UserController.userLogin);
+router.put("/update", userAuthorization, UserController.changePassword);
+router.post("/forget-password", UserController.forgetPassword);
+router.delete("/delete-account", UserController.deleteAccount);
 
 
 export default router;
-

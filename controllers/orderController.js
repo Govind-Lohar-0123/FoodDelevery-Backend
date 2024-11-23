@@ -1,9 +1,9 @@
-import orderModel from "../config/models/orderSchema.js";
+import orderModel from "../utils/models/orderSchema.js";
 
 
 class OrderController {
 
-    static getOrder = async (req, res) => {
+    static getOrders = async (req, res) => {
 
         try {
             const result = await orderModel.findOne({ email: req.body.email });
@@ -15,7 +15,7 @@ class OrderController {
         }
 
     }
-    static addOrder = async (req, res) => {
+    static addOrders = async (req, res) => {
         try {
             let result=null;
             result = await orderModel.find({ email: req.body.email });
